@@ -1,0 +1,57 @@
+[workspace]
+members = [".", "python-bindings"]
+resolver = "2"
+
+[package]
+name = "zeke"
+version = "0.1.0"
+edition = "2024"
+description = "Lightweight edge AI Inference runtime"
+license = "MIT"
+
+[lib]
+name = "zeke"
+crate-type = ["cdylib"]
+
+
+[dependencies]
+ndarray = { version = "0.16.1" }
+prost = { version = "0.14.1", optional = true }
+prost-types = { version = "0.14.1", optional = true }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+thiserror = "2.0.16"
+
+zeke = {path = "..", default-features = false, features = ["json"]}
+
+
+[dev-dependencies]
+approx = "0.5.1"
+tempfile = "3.23.0"
+
+[features]
+default = ["onnx"]
+
+onnx = ["prost", "prost-types", "prost-build"]
+
+prost = ["dep:prost"]
+prost-types = ["dep:prost-types"]
+prost-build = ["dep:prost-build"]
+
+
+[build-dependencies]
+prost-build = { version = "0.14.1", optional = true }
+
+[tool.maturin]
+python-source = "python"
+module-name = "zeke"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort" 
+
+[profile.dev]
+opt-level = 0
+debug = true
