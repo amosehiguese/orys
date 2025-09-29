@@ -1,6 +1,6 @@
 <div align="center">
   <picture>
-    <img alt="Orys Logo" src="./assets/orys.png" width="280"/>
+    <img alt="Orys Logo" src="./assets/orys-logo.png" width="280"/>
   </picture>
 </div>
 
