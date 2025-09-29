@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "inputs": [{"name": "input", "shape": [1, 2], "dtype": "f32"}],
+  "outputs": [{"name": "output", "shape": [1, 2], "dtype": "f32"}],
+  "initializers": [],
+  "nodes": [
+    {
+      "name": "relu",
+      "op_type": "ReLU",
+      "inputs": ["input"],
+      "outputs": ["output"]
+    }
+  ]
+}
