@@ -3,7 +3,7 @@
 //! This module provides the core graph abstraction for representing and executing
 //! neural networks. It handles operator dependencies, topological sorting, and
 //! memory management during inference.
-use crate::errors::{Result, ZekeError};
+use crate::errors::{Result, OrysError};
 use crate::ops::Operator;
 use crate::tensor::Tensor;
 use serde::{Deserialize, Serialize};
@@ -53,8 +53,8 @@ impl Initializer {
 ///
 /// # Examples
 /// ```rust
-/// use zeke::graph::ComputeGraph;
-/// use zeke::ops::create_operator;
+/// use orys::graph::ComputeGraph;
+/// use orys::ops::create_operator;
 ///
 /// let mut graph = ComputeGraph::new();
 /// 
@@ -113,7 +113,7 @@ impl ComputeGraph {
         outputs: Vec<String>,
     ) -> Result<()> {
         if self.nodes.contains_key(&name) {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Node '{}' already exists in graph",
                 name
             )));
@@ -187,10 +187,10 @@ impl ComputeGraph {
     pub fn validate(&self) -> Result<()> {
         // Check for inputs and outputs
         if self.inputs.is_empty() {
-            return Err(ZekeError::NoInputNodes);
+            return Err(OrysError::NoInputNodes);
         }
         if self.outputs.is_empty() {
-            return Err(ZekeError::NoOutputNodes);
+            return Err(OrysError::NoOutputNodes);
         }
 
         // Check for circular dependencies by attempting topological sort
@@ -227,7 +227,7 @@ impl ComputeGraph {
         for node in self.nodes.values() {
             for input in &node.inputs {
                 if !all_tensors.contains(input) {
-                    return Err(ZekeError::invalid_model(format!(
+                    return Err(OrysError::invalid_model(format!(
                         "Node '{}' references undefined tensor '{}'",
                         node.name, input
                     )));
@@ -238,7 +238,7 @@ impl ComputeGraph {
         // Check that all graph outputs are produced by some node
         for output in &self.outputs {
             if !all_tensors.contains(output) {
-                return Err(ZekeError::invalid_model(format!(
+                return Err(OrysError::invalid_model(format!(
                     "Graph output '{}' is not produced by any node",
                     output
                 )));
@@ -311,7 +311,7 @@ impl ComputeGraph {
                 .map(|(name, _)| name.clone())
                 .collect();
             
-            return Err(ZekeError::CircularDependency {
+            return Err(OrysError::CircularDependency {
                 nodes: remaining_nodes,
             });
         }
@@ -339,8 +339,8 @@ impl ComputeGraph {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::graph::ComputeGraph;
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::graph::ComputeGraph;
+    /// # use orys::tensor::Tensor;
     /// # use std::collections::HashMap;
     /// # let graph = ComputeGraph::new();
     /// let mut inputs = HashMap::new();
@@ -375,7 +375,7 @@ impl ComputeGraph {
                 match tensors.get(input_name) {
                     Some(tensor) => node_inputs.push(tensor.clone()),
                     None => {
-                        return Err(ZekeError::NodeNotFound {
+                        return Err(OrysError::NodeNotFound {
                             node_name: input_name.clone(),
                         });
                     }
@@ -384,7 +384,7 @@ impl ComputeGraph {
 
             // Execute the operator
             let result = operator.execute(&node_inputs).map_err(|e| {
-                ZekeError::inference_error(format!(
+                OrysError::inference_error(format!(
                     "Node '{}' ({}) execution failed: {}",
                     node_name, node.op_type, e
                 ))
@@ -392,7 +392,7 @@ impl ComputeGraph {
 
             // Store output tensors
             if node.outputs.len() != 1 {
-                return Err(ZekeError::inference_error(format!(
+                return Err(OrysError::inference_error(format!(
                     "Node '{}' produces {} outputs, but only single-output nodes are currently supported",
                     node_name, node.outputs.len()
                 )));
@@ -409,7 +409,7 @@ impl ComputeGraph {
                     outputs.insert(output_name.clone(), tensor.clone());
                 }
                 None => {
-                    return Err(ZekeError::inference_error(format!(
+                    return Err(OrysError::inference_error(format!(
                         "Output tensor '{}' was not produced during execution",
                         output_name
                     )));
@@ -425,7 +425,7 @@ impl ComputeGraph {
         // Check that all required inputs are provided
         for required_input in &self.inputs {
             if !inputs.contains_key(required_input) {
-                return Err(ZekeError::MissingInput {
+                return Err(OrysError::MissingInput {
                     input_name: required_input.clone(),
                 });
             }
@@ -434,7 +434,7 @@ impl ComputeGraph {
         // Check for unexpected inputs
         for provided_input in inputs.keys() {
             if !self.inputs.contains(provided_input) {
-                return Err(ZekeError::inference_error(format!(
+                return Err(OrysError::inference_error(format!(
                     "Unexpected input '{}' provided. Expected inputs: {:?}",
                     provided_input, self.inputs
                 )));
@@ -569,7 +569,7 @@ mod tests {
         
         let result = graph.compute_execution_order();
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ZekeError::CircularDependency { .. }));
+        assert!(matches!(result.unwrap_err(), OrysError::CircularDependency { .. }));
     }
 
     #[test]
@@ -656,7 +656,7 @@ mod tests {
         let result = graph.execute(inputs);
         
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ZekeError::MissingInput { .. }));
+        assert!(matches!(result.unwrap_err(), OrysError::MissingInput { .. }));
     }
 
     #[test]

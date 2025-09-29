@@ -4,7 +4,7 @@
 //! The JSON format is designed to be human-readable and easy to create
 //! for testing and development purposes.
 
-use crate::errors::{Result, ZekeError};
+use crate::errors::{Result, OrysError};
 use crate::graph::{ComputeGraph, Initializer};
 use crate::ops::create_operator;
 use crate::loader::ModelLoader;
@@ -172,8 +172,8 @@ impl JsonLoader {
     /// Performs basic JSON parsing and schema validation without
     /// building the computation graph.
     pub fn validate_file(path: &Path) -> Result<()> {
-        let content = std::fs::read_to_string(path).map_err(ZekeError::Io)?;
-        let _model: JsonModel = serde_json::from_str(&content).map_err(ZekeError::Json)?;
+        let content = std::fs::read_to_string(path).map_err(OrysError::Io)?;
+        let _model: JsonModel = serde_json::from_str(&content).map_err(OrysError::Json)?;
         
         // Additional validation could go here (version compatibility, etc.)
         
@@ -187,8 +187,8 @@ impl JsonLoader {
     pub fn inspect_file(
         path: &Path,
     ) -> Result<(usize, usize, usize, usize, Vec<String>, Vec<String>)> {
-        let content = std::fs::read_to_string(path).map_err(ZekeError::Io)?;
-        let model: JsonModel = serde_json::from_str(&content).map_err(ZekeError::Json)?;
+        let content = std::fs::read_to_string(path).map_err(OrysError::Io)?;
+        let model: JsonModel = serde_json::from_str(&content).map_err(OrysError::Json)?;
         
         let node_count = model.nodes.len();
         let input_count = model.inputs.len();
@@ -202,8 +202,8 @@ impl JsonLoader {
 
     /// Parse and validate the JSON model structure
     fn parse_model(&self, path: &Path) -> Result<JsonModel> {
-        let content = std::fs::read_to_string(path).map_err(ZekeError::Io)?;
-        let model: JsonModel = serde_json::from_str(&content).map_err(ZekeError::Json)?;
+        let content = std::fs::read_to_string(path).map_err(OrysError::Io)?;
+        let model: JsonModel = serde_json::from_str(&content).map_err(OrysError::Json)?;
         
         // Validate version compatibility
         self.validate_version(&model.version)?;
@@ -219,7 +219,7 @@ impl JsonLoader {
         // For now, we only support version 1.0
         // Future versions could be handled with migration logic
         if version != "1.0" {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Unsupported JSON model version: {}. Supported versions: 1.0",
                 version
             )));
@@ -231,20 +231,20 @@ impl JsonLoader {
     fn validate_model_structure(&self, model: &JsonModel) -> Result<()> {
         // Check that we have at least one input and output
         if model.inputs.is_empty() {
-            return Err(ZekeError::invalid_model(
+            return Err(OrysError::invalid_model(
                 "Model must have at least one input".to_string(),
             ));
         }
         
         if model.outputs.is_empty() {
-            return Err(ZekeError::invalid_model(
+            return Err(OrysError::invalid_model(
                 "Model must have at least one output".to_string(),
             ));
         }
         
         // Check that we have at least one node
         if model.nodes.is_empty() {
-            return Err(ZekeError::invalid_model(
+            return Err(OrysError::invalid_model(
                 "Model must have at least one computation node".to_string(),
             ));
         }
@@ -274,28 +274,28 @@ impl JsonLoader {
     /// Validate a tensor specification
     fn validate_tensor_spec(&self, spec: &TensorSpec, context: &str) -> Result<()> {
         if spec.name.is_empty() {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "{} tensor must have a non-empty name",
                 context
             )));
         }
 
         if spec.shape.is_empty() {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "{} tensor '{}' must have a non-empty shape",
                 context, spec.name
             )));
         }
 
         if spec.shape.iter().any(|&dim| dim == 0) {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "{} tensor '{}' has zero-sized dimension in shape {:?}",
                 context, spec.name, spec.shape
             )));
         }
 
         if spec.dtype != "f32" {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "{} tensor '{}' has unsupported dtype '{}'. Only 'f32' is supported",
                 context, spec.name, spec.dtype
             )));
@@ -307,13 +307,13 @@ impl JsonLoader {
     /// Validate an initializer
     fn validate_initializer(&self, init: &JsonInitializer) -> Result<()> {
         if init.name.is_empty() {
-            return Err(ZekeError::invalid_model(
+            return Err(OrysError::invalid_model(
                 "Initializer must have a non-empty name".to_string(),
             ));
         }
 
         if init.shape.is_empty() {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Initializer '{}' must have a non-empty shape",
                 init.name
             )));
@@ -321,7 +321,7 @@ impl JsonLoader {
 
         let expected_size: usize = init.shape.iter().product();
         if init.data.len() != expected_size {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Initializer '{}' data size {} doesn't match shape {:?} (expected {} elements)",
                 init.name, init.data.len(), init.shape, expected_size
             )));
@@ -333,20 +333,20 @@ impl JsonLoader {
     /// Validate a computation node
     fn validate_node(&self, node: &JsonNode) -> Result<()> {
         if node.name.is_empty() {
-            return Err(ZekeError::invalid_model(
+            return Err(OrysError::invalid_model(
                 "Node must have a non-empty name".to_string(),
             ));
         }
 
         if node.op_type.is_empty() {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Node '{}' must have a non-empty op_type",
                 node.name
             )));
         }
 
         if node.outputs.is_empty() {
-            return Err(ZekeError::invalid_model(format!(
+            return Err(OrysError::invalid_model(format!(
                 "Node '{}' must have at least one output",
                 node.name
             )));
@@ -354,7 +354,7 @@ impl JsonLoader {
 
         // Validate that operator type is supported
         create_operator(&node.op_type).map_err(|_| {
-            ZekeError::invalid_model(format!(
+            OrysError::invalid_model(format!(
                 "Node '{}' uses unsupported operator type '{}'",
                 node.name, node.op_type
             ))

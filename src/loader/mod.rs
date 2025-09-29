@@ -3,7 +3,7 @@
 //! This module provides a unified interface for loading neural network models
 //! from different file formats (JSON, ONNX) into executable computation graphs.
 
-use crate::errors::{Result, ZekeError};
+use crate::errors::{Result, OrysError};
 use crate::graph::ComputeGraph;
 use std::path::Path;
 
@@ -56,7 +56,7 @@ pub trait ModelLoader {
 ///
 /// # Examples
 /// ```rust
-/// use zeke::loader::detect_format;
+/// use orys::loader::detect_format;
 /// 
 /// let format = detect_format("model.json")?;
 /// assert_eq!(format, ModelFormat::Json);
@@ -67,7 +67,7 @@ pub fn detect_format<P: AsRef<Path>>(path: P) -> Result<ModelFormat> {
     
     // Check if file exists first
     if !path.exists() {
-        return Err(ZekeError::UnrecognizedFormat {
+        return Err(OrysError::UnrecognizedFormat {
             filename: path.display().to_string(),
         });
     }
@@ -101,13 +101,13 @@ pub fn detect_format<P: AsRef<Path>>(path: P) -> Result<ModelFormat> {
         }
         Err(_) => {
             // File doesn't exist or can't be read
-            return Err(ZekeError::UnrecognizedFormat {
+            return Err(OrysError::UnrecognizedFormat {
                 filename: path.display().to_string(),
             });
         }
     }
 
-    Err(ZekeError::UnrecognizedFormat {
+    Err(OrysError::UnrecognizedFormat {
         filename: path.display().to_string(),
     })
 }
@@ -125,7 +125,7 @@ pub fn detect_format<P: AsRef<Path>>(path: P) -> Result<ModelFormat> {
 ///
 /// # Examples
 /// ```rust
-/// use zeke::loader::load_model;
+/// use orys::loader::load_model;
 /// 
 /// let graph = load_model("models/classifier.json")?;
 /// println!("Loaded model with {} nodes", graph.execution_stats().node_count);
@@ -143,7 +143,7 @@ pub fn load_model<P: AsRef<Path>>(path: P) -> Result<ComputeGraph> {
         #[cfg(feature = "onnx")]
         ModelFormat::Onnx => {
             // For now, return an error since ONNX is not implemented yet
-            Err(ZekeError::UnsupportedOnnxFeatures {
+            Err(OrysError::UnsupportedOnnxFeatures {
                 features: vec!["ONNX support not yet implemented".to_string()],
             })
         }
@@ -185,7 +185,7 @@ pub fn load_model_with_format<P: AsRef<Path>>(
         }
         #[cfg(feature = "onnx")]
         ModelFormat::Onnx => {
-            Err(ZekeError::UnsupportedOnnxFeatures {
+            Err(OrysError::UnsupportedOnnxFeatures {
                 features: vec!["ONNX support not yet implemented".to_string()],
             })
         }
@@ -207,14 +207,14 @@ pub fn validate_model_file<P: AsRef<Path>>(path: P) -> Result<ModelFormat> {
     
     // Check if file exists and is readable
     if !path.exists() {
-        return Err(ZekeError::Io(std::io::Error::new(
+        return Err(OrysError::Io(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             format!("Model file not found: {}", path.display()),
         )));
     }
     
     if !path.is_file() {
-        return Err(ZekeError::invalid_model(format!(
+        return Err(OrysError::invalid_model(format!(
             "Path is not a file: {}",
             path.display()
         )));
@@ -230,7 +230,7 @@ pub fn validate_model_file<P: AsRef<Path>>(path: P) -> Result<ModelFormat> {
         }
         #[cfg(feature = "onnx")]
         ModelFormat::Onnx => {
-            return Err(ZekeError::UnsupportedOnnxFeatures {
+            return Err(OrysError::UnsupportedOnnxFeatures {
                 features: vec!["ONNX validation not yet implemented".to_string()],
             });
         }
@@ -274,7 +274,7 @@ pub fn inspect_model<P: AsRef<Path>>(path: P) -> Result<ModelInfo> {
     let path = path.as_ref();
     
     // Get file metadata
-    let metadata = std::fs::metadata(path).map_err(ZekeError::Io)?;
+    let metadata = std::fs::metadata(path).map_err(OrysError::Io)?;
     let file_size = metadata.len();
     
     // Detect format
@@ -288,7 +288,7 @@ pub fn inspect_model<P: AsRef<Path>>(path: P) -> Result<ModelInfo> {
             }
             #[cfg(feature = "onnx")]
             ModelFormat::Onnx => {
-                return Err(ZekeError::UnsupportedOnnxFeatures {
+                return Err(OrysError::UnsupportedOnnxFeatures {
                     features: vec!["ONNX inspection not yet implemented".to_string()],
                 });
             }

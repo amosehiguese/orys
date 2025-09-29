@@ -1,24 +1,24 @@
-//! Python bindings for the Zeke inference runtime
+//! Python bindings for the orys inference runtime
 //!
 //! This module provides Python bindings using PyO3, allowing Python users
-//! to load and run neural network models using the Zeke runtime.
+//! to load and run neural network models using the orys runtime.
 
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use numpy::{PyArray1, PyReadonlyArray1, ToPyArray};
 use std::collections::HashMap;
 
-// Re-export core Zeke types with Python wrappers
-use zeke::{Tensor as ZekeTensor, ComputeGraph as ZekeGraph, run_model as zeke_run_model};
+// Re-export core orys types with Python wrappers
+use orys::{Tensor as orysTensor, ComputeGraph as orysGraph, run_model as orys_run_model};
 
-/// Python wrapper for Zeke Tensor
+/// Python wrapper for orys Tensor
 ///
 /// Provides a Python-friendly interface to the Rust Tensor type,
 /// with automatic conversion to/from NumPy arrays.
 #[pyclass(name = "Tensor")]
 #[derive(Clone)]
 pub struct PyTensor {
-    inner: ZekeTensor,
+    inner: orysTensor,
 }
 
 #[pymethods]
@@ -33,10 +33,10 @@ impl PyTensor {
     ///     Tensor: New tensor instance
     ///
     /// Example:
-    ///     >>> tensor = zeke.Tensor([2, 3], [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    ///     >>> tensor = orys.Tensor([2, 3], [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     #[new]
     fn new(shape: Vec<usize>, data: Vec<f32>) -> PyResult<Self> {
-        let tensor = ZekeTensor::new(shape, data)
+        let tensor = orysTensor::new(shape, data)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}", e)))?;
         Ok(PyTensor { inner: tensor })
     }
@@ -50,11 +50,11 @@ impl PyTensor {
     ///     Tensor: Zero-filled tensor
     ///
     /// Example:
-    ///     >>> tensor = zeke.Tensor.zeros([2, 3])
+    ///     >>> tensor = orys.Tensor.zeros([2, 3])
     #[staticmethod]
     fn zeros(shape: Vec<usize>) -> Self {
         PyTensor {
-            inner: ZekeTensor::zeros(shape),
+            inner: orysTensor::zeros(shape),
         }
     }
 
@@ -67,11 +67,11 @@ impl PyTensor {
     ///     Tensor: One-filled tensor
     ///
     /// Example:
-    ///     >>> tensor = zeke.Tensor.ones([2, 3])
+    ///     >>> tensor = orys.Tensor.ones([2, 3])
     #[staticmethod]
     fn ones(shape: Vec<usize>) -> Self {
         PyTensor {
-            inner: ZekeTensor::ones(shape),
+            inner: orysTensor::ones(shape),
         }
     }
 
@@ -86,13 +86,13 @@ impl PyTensor {
     /// Example:
     ///     >>> import numpy as np
     ///     >>> arr = np.array([[1.0, 2.0], [3.0, 4.0]])
-    ///     >>> tensor = zeke.Tensor.from_numpy(arr)
+    ///     >>> tensor = orys.Tensor.from_numpy(arr)
     #[staticmethod]
     fn from_numpy(array: PyReadonlyArray1<f32>) -> PyResult<Self> {
         let data = array.as_slice()?.to_vec();
         let shape = vec![data.len()];
         
-        let tensor = ZekeTensor::new(shape, data)
+        let tensor = orysTensor::new(shape, data)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}", e)))?;
         Ok(PyTensor { inner: tensor })
     }
@@ -103,7 +103,7 @@ impl PyTensor {
     ///     numpy.ndarray: NumPy array with same data
     ///
     /// Example:
-    ///     >>> tensor = zeke.Tensor.ones([2, 3])
+    ///     >>> tensor = orys.Tensor.ones([2, 3])
     ///     >>> array = tensor.to_numpy()
     fn to_numpy<'py>(&self, py: Python<'py>) -> &'py PyArray1<f32> {
         self.inner.data().to_pyarray(py)
@@ -184,7 +184,7 @@ impl PyTensor {
 /// multiple times with different inputs.
 #[pyclass(name = "ComputeGraph")]
 pub struct PyComputeGraph {
-    inner: ZekeGraph,
+    inner: orysGraph,
 }
 
 #[pymethods]
@@ -198,7 +198,7 @@ impl PyComputeGraph {
     ///     Dict[str, Tensor]: Dictionary mapping output names to result tensors
     ///
     /// Example:
-    ///     >>> inputs = {"input": zeke.Tensor.ones([1, 784])}
+    ///     >>> inputs = {"input": orys.Tensor.ones([1, 784])}
     ///     >>> outputs = graph.execute(inputs)
     ///     >>> prediction = outputs["output"]
     fn execute(&mut self, inputs: &PyDict) -> PyResult<PyObject> {
@@ -215,7 +215,7 @@ impl PyComputeGraph {
             } else if let Ok(array) = value.extract::<PyReadonlyArray1<f32>>() {
                 let data = array.as_slice()?.to_vec();
                 let shape = vec![data.len()];
-                ZekeTensor::new(shape, data)
+                orysTensor::new(shape, data)
                     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}", e)))?
             } else {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -298,13 +298,13 @@ impl PyComputeGraph {
 ///     FileNotFoundError: If model file doesn't exist
 ///
 /// Example:
-///     >>> graph = zeke.load_model("classifier.json")
+///     >>> graph = orys.load_model("classifier.json")
 ///     >>> print(f"Model has {len(graph.inputs)} inputs")
 #[pyfunction]
 fn load_model(model_path: &str) -> PyResult<PyComputeGraph> {
-    let graph = zeke::load_model(model_path)
+    let graph = orys::load_model(model_path)
         .map_err(|e| match e {
-            zeke::ZekeError::Io(_) => PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(format!("{}", e)),
+            orys::OrysError::Io(_) => PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(format!("{}", e)),
             _ => PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}", e)),
         })?;
     
@@ -323,7 +323,7 @@ fn load_model(model_path: &str) -> PyResult<PyComputeGraph> {
 /// Example:
 ///     >>> import numpy as np
 ///     >>> inputs = {"input": np.ones((1, 784), dtype=np.float32)}
-///     >>> outputs = zeke.run_model("mnist.json", inputs)
+///     >>> outputs = orys.run_model("mnist.json", inputs)
 ///     >>> prediction = outputs["output"]
 #[pyfunction]
 fn run_model(model_path: &str, inputs: &PyDict) -> PyResult<PyObject> {
@@ -340,7 +340,7 @@ fn run_model(model_path: &str, inputs: &PyDict) -> PyResult<PyObject> {
         } else if let Ok(array) = value.extract::<PyReadonlyArray1<f32>>() {
             let data = array.as_slice()?.to_vec();
             let shape = vec![data.len()];
-            ZekeTensor::new(shape, data)
+            orysTensor::new(shape, data)
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}", e)))?
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
@@ -352,9 +352,9 @@ fn run_model(model_path: &str, inputs: &PyDict) -> PyResult<PyObject> {
     }
 
     // Run inference
-    let rust_outputs = zeke_run_model(model_path, rust_inputs)
+    let rust_outputs = orys_run_model(model_path, rust_inputs)
         .map_err(|e| match e {
-            zeke::ZekeError::Io(_) => PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(format!("{}", e)),
+            orys::OrysError::Io(_) => PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(format!("{}", e)),
             _ => PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e)),
         })?;
 
@@ -374,7 +374,7 @@ fn run_model(model_path: &str, inputs: &PyDict) -> PyResult<PyObject> {
 ///     str: Version string
 #[pyfunction]
 fn version() -> &'static str {
-    zeke::version()
+    orys::version()
 }
 
 /// Get available model format loaders
@@ -383,12 +383,12 @@ fn version() -> &'static str {
 ///     List[str]: Available loader names
 #[pyfunction]
 fn available_loaders() -> Vec<&'static str> {
-    zeke::available_loaders()
+    orys::available_loaders()
 }
 
 /// Python module definition
 #[pymodule]
-fn zeke(_py: Python, m: &PyModule) -> PyResult<()> {
+fn orys(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyTensor>()?;
     m.add_class::<PyComputeGraph>()?;
     m.add_function(wrap_pyfunction!(load_model, m)?)?;
@@ -397,8 +397,8 @@ fn zeke(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(available_loaders, m)?)?;
     
     // Add module metadata
-    m.add("__version__", zeke::version())?;
-    m.add("__doc__", "Zeke - Lightweight Edge AI Inference Runtime")?;
+    m.add("__version__", orys::version())?;
+    m.add("__doc__", "orys - Lightweight Edge AI Inference Runtime")?;
     
     Ok(())
 }

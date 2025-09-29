@@ -1,6 +1,6 @@
-//! Zeke - Lightweight Edge AI Inference Runtime
+//! orys - Lightweight Edge AI Inference Runtime
 //!
-//! Zeke is a high-performance, memory-safe inference runtime for neural networks,
+//! orys is a high-performance, memory-safe inference runtime for neural networks,
 //! written in Rust. It supports a subset of ONNX operators and provides both
 //! JSON and ONNX model loading capabilities.
 //!
@@ -15,7 +15,7 @@
 //! # Quick Start
 //!
 //! ```rust
-//! use zeke::{run_model, Tensor};
+//! use orys::{run_model, Tensor};
 //! use std::collections::HashMap;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,7 +36,7 @@
 //! For more control over the inference process:
 //!
 //! ```rust
-//! use zeke::{loader, graph::ComputeGraph, Tensor};
+//! use orys::{loader, graph::ComputeGraph, Tensor};
 //! use std::collections::HashMap;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -63,7 +63,7 @@ pub mod graph;
 pub mod loader;
 
 // Re-export commonly used types for convenience
-pub use errors::{Result, ZekeError};
+pub use errors::{Result, OrysError};
 pub use tensor::Tensor;
 pub use graph::{ComputeGraph, GraphNode, Initializer, ExecutionStats};
 pub use ops::{Operator, MatMul, Add, ReLU, Sigmoid, create_operator};
@@ -73,7 +73,7 @@ use std::path::Path;
 
 /// Run inference on a model with given inputs
 ///
-/// This is the simplest way to use Zeke - provide a model file and inputs,
+/// This is the simplest way to use orys - provide a model file and inputs,
 /// get outputs back. The model format is automatically detected.
 ///
 /// # Arguments
@@ -91,7 +91,7 @@ use std::path::Path;
 /// # Examples
 ///
 /// ```rust
-/// use zeke::{run_model, Tensor};
+/// use orys::{run_model, Tensor};
 /// use std::collections::HashMap;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -133,7 +133,7 @@ pub fn run_model<P: AsRef<Path>>(
 /// # Examples
 ///
 /// ```rust
-/// use zeke::{load_model, Tensor};
+/// use orys::{load_model, Tensor};
 /// use std::collections::HashMap;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -172,7 +172,7 @@ pub fn load_model<P: AsRef<Path>>(model_path: P) -> Result<ComputeGraph> {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::validate_model;
+/// use orys::validate_model;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// match validate_model("model.json") {
@@ -201,7 +201,7 @@ pub fn validate_model<P: AsRef<Path>>(model_path: P) -> Result<loader::ModelForm
 /// # Examples
 ///
 /// ```rust
-/// use zeke::inspect_model;
+/// use orys::inspect_model;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let info = inspect_model("model.json")?;
@@ -229,7 +229,7 @@ pub fn inspect_model<P: AsRef<Path>>(model_path: P) -> Result<loader::ModelInfo>
 /// # Examples
 ///
 /// ```rust
-/// use zeke::available_loaders;
+/// use orys::available_loaders;
 ///
 /// let loaders = available_loaders();
 /// for loader in loaders {
@@ -254,7 +254,7 @@ pub fn available_loaders() -> Vec<&'static str> {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::tensor_from_vec;
+/// use orys::tensor_from_vec;
 ///
 /// let tensor = tensor_from_vec(vec![1.0, 2.0, 3.0, 4.0]);
 /// assert_eq!(tensor.shape(), &[4]);
@@ -276,7 +276,7 @@ pub fn tensor_from_vec(data: Vec<f32>) -> Tensor {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::tensor_with_shape;
+/// use orys::tensor_with_shape;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let tensor = tensor_with_shape(vec![2, 3], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])?;
@@ -300,7 +300,7 @@ pub fn tensor_with_shape(shape: Vec<usize>, data: Vec<f32>) -> Result<Tensor> {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::zeros;
+/// use orys::zeros;
 ///
 /// let tensor = zeros(vec![2, 3]);
 /// assert_eq!(tensor.shape(), &[2, 3]);
@@ -321,7 +321,7 @@ pub fn zeros(shape: Vec<usize>) -> Tensor {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::ones;
+/// use orys::ones;
 ///
 /// let tensor = ones(vec![2, 2]);
 /// assert_eq!(tensor.data(), &[1.0, 1.0, 1.0, 1.0]);
@@ -341,7 +341,7 @@ pub fn ones(shape: Vec<usize>) -> Tensor {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::scalar;
+/// use orys::scalar;
 ///
 /// let tensor = scalar(42.0);
 /// assert_eq!(tensor.shape(), &[]);
@@ -354,7 +354,7 @@ pub fn scalar(value: f32) -> Tensor {
 
 /// Library version information
 ///
-/// Returns the current version of the Zeke library.
+/// Returns the current version of the orys library.
 /// Useful for debugging and compatibility checking.
 ///
 /// # Returns
@@ -363,9 +363,9 @@ pub fn scalar(value: f32) -> Tensor {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::version;
+/// use orys::version;
 ///
-/// println!("Zeke version: {}", version());
+/// println!("orys version: {}", version());
 /// ```
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
@@ -382,7 +382,7 @@ pub fn version() -> &'static str {
 /// # Examples
 ///
 /// ```rust
-/// use zeke::build_info;
+/// use orys::build_info;
 ///
 /// let info = build_info();
 /// println!("Version: {}", info.version);
@@ -423,15 +423,15 @@ fn enabled_features() -> Vec<&'static str> {
 /// Prelude module for convenient imports
 ///
 /// The prelude includes the most commonly used types and functions
-/// from the Zeke library. Import this module to get started quickly.
+/// from the orys library. Import this module to get started quickly.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use zeke::prelude::*;
+/// use orys::prelude::*;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// // Now you have access to all common Zeke types
+/// // Now you have access to all common orys types
 /// let tensor = ones(vec![2, 2]);
 /// let mut inputs = HashMap::new();
 /// inputs.insert("input".to_string(), tensor);
@@ -443,7 +443,7 @@ pub mod prelude {
     pub use crate::{
         run_model, load_model, validate_model, inspect_model,
         tensor_from_vec, tensor_with_shape, zeros, ones, scalar,
-        Tensor, ComputeGraph, Result, ZekeError,
+        Tensor, ComputeGraph, Result, OrysError,
     };
     pub use std::collections::HashMap;
 }

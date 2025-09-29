@@ -1,8 +1,8 @@
-//! Core tensor implementation for the Zeke inference runtime
+//! Core tensor implementation for the orys inference runtime
 //!
 //! This module provides the `Tensor` struct and associated operations for
 //! storing and manipulating multi-dimensional arrays of floating-point data.
-use crate::errors::{Result, ZekeError};
+use crate::errors::{Result, OrysError};
 use serde::{Deserialize, Serialize};
 
 /// N-dimensional tensor for storing floating-point data
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use zeke::tensor::Tensor;
+/// use orys::tensor::Tensor;
 ///
 /// // Create a 2x3 tensor
 /// let tensor = Tensor::new(vec![2, 3], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])?;
@@ -44,14 +44,14 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::new(vec![2, 2], vec![1.0, 2.0, 3.0, 4.0])?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn new(shape: Vec<usize>, data: Vec<f32>) -> Result<Self> {
         let expected_size = shape.iter().product();
         if data.len() != expected_size {
-            return Err(ZekeError::TensorSizeMismatch { 
+            return Err(OrysError::TensorSizeMismatch { 
                 shape: shape.clone(), 
                 expected: expected_size, 
                 actual: data.len(), 
@@ -64,7 +64,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::zeros(vec![2, 3]);
     /// assert_eq!(tensor.data(), &[0.0; 6]);
     /// ```
@@ -80,7 +80,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::ones(vec![2, 2]);
     /// assert_eq!(tensor.data(), &[1.0, 1.0, 1.0, 1.0]);
     /// ```
@@ -96,7 +96,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0]);
     /// assert_eq!(tensor.shape(), &[3]);
     /// ```
@@ -109,7 +109,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::scalar(42.0);
     /// assert_eq!(tensor.shape(), &[]);
     /// assert_eq!(tensor.data(), &[42.0]);
@@ -163,7 +163,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::zeros(vec![2, 3]);
     /// let flat_idx = tensor.flat_index(&[1, 2])?;
     /// assert_eq!(flat_idx, 5); // 1 * 3 + 2
@@ -171,7 +171,7 @@ impl Tensor {
     /// ```
     pub fn flat_index(&self, indices: &[usize]) -> Result<usize> {
         if indices.len() != self.ndim() {
-            return Err(ZekeError::invalid_tensor_op(format!(
+            return Err(OrysError::invalid_tensor_op(format!(
                 "Index dimensions {} don't match tensor dimensions {}",
                 indices.len(),
                 self.ndim()
@@ -185,7 +185,7 @@ impl Tensor {
         for (i, &dim_size) in self.shape.iter().enumerate().rev() {
             let idx = indices[i];
             if idx >= dim_size {
-                return Err(ZekeError::invalid_tensor_op(format!(
+                return Err(OrysError::invalid_tensor_op(format!(
                     "Index {} out of bounds for dimension {} with size {}",
                     idx, i, dim_size
                 )));
@@ -201,7 +201,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::new(vec![2, 2], vec![1.0, 2.0, 3.0, 4.0])?;
     /// assert_eq!(tensor.get(&[1, 1])?, 4.0);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -215,7 +215,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let mut tensor = Tensor::zeros(vec![2, 2]);
     /// tensor.set(&[0, 1], 5.0)?;
     /// assert_eq!(tensor.get(&[0, 1])?, 5.0);
@@ -233,7 +233,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let mut tensor = Tensor::new(vec![2, 3], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])?;
     /// tensor.reshape(vec![3, 2])?;
     /// assert_eq!(tensor.shape(), &[3, 2]);
@@ -242,7 +242,7 @@ impl Tensor {
     pub fn reshape(&mut self, new_shape: Vec<usize>) -> Result<()> {
         let new_size: usize = new_shape.iter().product();
         if new_size != self.size() {
-            return Err(ZekeError::invalid_tensor_op(format!(
+            return Err(OrysError::invalid_tensor_op(format!(
                 "Cannot reshape tensor with {} elements to shape {:?} requiring {} elements",
                 self.size(),
                 new_shape,
@@ -257,7 +257,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0]);
     /// let reshaped = tensor.reshaped(vec![2, 2])?;
     /// assert_eq!(reshaped.shape(), &[2, 2]);
@@ -278,7 +278,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let a = Tensor::zeros(vec![3, 1]);     // Shape: [3, 1]
     /// let b = Tensor::zeros(vec![1, 4]);     // Shape: [1, 4]
     /// assert!(a.is_broadcastable_with(&b));  // Can broadcast to [3, 4]
@@ -301,7 +301,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let a = Tensor::zeros(vec![3, 1]);
     /// let b = Tensor::zeros(vec![1, 4]);
     /// let broadcast_shape = a.broadcast_shape(&b)?;
@@ -310,7 +310,7 @@ impl Tensor {
     /// ```
     pub fn broadcast_shape(&self, other: &Tensor) -> Result<Vec<usize>> {
         if !self.is_broadcastable_with(other) {
-            return Err(ZekeError::ShapeMismatch {
+            return Err(OrysError::ShapeMismatch {
                 expected: self.shape.clone(),
                 actual: other.shape.clone(),
             });
@@ -333,7 +333,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let mut tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0]);
     /// tensor.map_inplace(|x| x * 2.0);
     /// assert_eq!(tensor.data(), &[2.0, 4.0, 6.0]);
@@ -351,7 +351,7 @@ impl Tensor {
     ///
     /// # Examples
     /// ```rust
-    /// # use zeke::tensor::Tensor;
+    /// # use orys::tensor::Tensor;
     /// let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0]);
     /// let squared = tensor.map(|x| x * x);
     /// assert_eq!(squared.data(), &[1.0, 4.0, 9.0]);
@@ -385,7 +385,7 @@ mod tests {
     fn test_tensor_size_mismatch() {
         let result = Tensor::new(vec![2, 3], vec![1.0, 2.0, 3.0]);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ZekeError::TensorSizeMismatch { .. }));
+        assert!(matches!(result.unwrap_err(), OrysError::TensorSizeMismatch { .. }));
     }
 
     #[test]

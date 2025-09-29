@@ -1,11 +1,11 @@
-//! Error types for the zeke inference runtime
+//! Error types for the orys inference runtime
 //! 
-//! This module defines all error types used thoughout the Zeke runtime.
+//! This module defines all error types used thoughout the orys runtime.
 //! We use `thiserror` for ergonomic error handling with automatic trait implementation
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum ZekeError {
+pub enum OrysError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -92,12 +92,12 @@ pub enum ZekeError {
     UnsupportedOnnxFeatures { features: Vec<String> },
 }
 
-pub type Result<T> = std::result::Result<T, ZekeError>;
+pub type Result<T> = std::result::Result<T, OrysError>;
 
-impl ZekeError {
+impl OrysError {
     /// Create a new InvalidTensorOperation error
     pub fn invalid_tensor_op<S: Into<String>>(message: S) -> Self {
-        ZekeError::InvalidTensorOperation { message: message.into() }
+        OrysError::InvalidTensorOperation { message: message.into() }
     }
 
     /// Create a new OperatorValidation error
@@ -105,7 +105,7 @@ impl ZekeError {
         op_type: S1,
         message: S2,
     ) -> Self {
-        ZekeError::OperatorValidation {
+        OrysError::OperatorValidation {
             op_type: op_type.into(),
             message: message.into(),
         }
@@ -113,14 +113,14 @@ impl ZekeError {
 
     /// Create a new InvalidModel error
     pub fn invalid_model<S: Into<String>>(message: S) -> Self {
-        ZekeError::InvalidModel {
+        OrysError::InvalidModel {
             message: message.into(),
         }
     }
 
     /// Create a new InferenceError
     pub fn inference_error<S: Into<String>>(message: S) -> Self {
-        ZekeError::InferenceError {
+        OrysError::InferenceError {
             message: message.into(),
         }
     }
@@ -129,9 +129,9 @@ impl ZekeError {
     pub fn is_tensor_error(&self) -> bool {
         matches!(
             self,
-            ZekeError::ShapeMismatch { .. }
-                | ZekeError::InvalidTensorOperation { .. }
-                | ZekeError::TensorSizeMismatch {  .. }
+            OrysError::ShapeMismatch { .. }
+                | OrysError::InvalidTensorOperation { .. }
+                | OrysError::TensorSizeMismatch {  .. }
         )
     }
 
@@ -139,10 +139,10 @@ impl ZekeError {
     pub fn is_graph_error(&self) -> bool {
         matches!(
             self,
-            ZekeError::NodeNotFound { .. }
-                | ZekeError::CircularDependency { .. }
-                | ZekeError::NoInputNodes
-                | ZekeError::NoOutputNodes
+            OrysError::NodeNotFound { .. }
+                | OrysError::CircularDependency { .. }
+                | OrysError::NoInputNodes
+                | OrysError::NoOutputNodes
         )
     }
 
@@ -150,9 +150,9 @@ impl ZekeError {
     pub fn is_operator_error(&self) -> bool {
         matches!(
             self,
-            ZekeError::UnsupportedOperator { .. }
-                | ZekeError::InvalidInputCount { .. }
-                | ZekeError::OperatorValidation { .. }
+            OrysError::UnsupportedOperator { .. }
+                | OrysError::InvalidInputCount { .. }
+                | OrysError::OperatorValidation { .. }
         )
     }
 
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_error_display() {
-        let error = ZekeError::ShapeMismatch { 
+        let error = OrysError::ShapeMismatch { 
             expected: vec![2, 3],
             actual: vec![3, 2],
         };
@@ -177,14 +177,14 @@ mod tests {
 
     #[test]
     fn test_error_categorization() {
-        let tensor_error = ZekeError::ShapeMismatch {
+        let tensor_error = OrysError::ShapeMismatch {
             expected: vec![1],
             actual: vec![2],
         };
         assert!(tensor_error.is_tensor_error());
         assert!(!tensor_error.is_graph_error());
 
-        let graph_error = ZekeError::NodeNotFound {
+        let graph_error = OrysError::NodeNotFound {
             node_name: "test".to_string(),
         };
         assert!(graph_error.is_graph_error());
@@ -193,10 +193,10 @@ mod tests {
 
     #[test]
     fn test_convenience_constructors() {
-        let error = ZekeError::invalid_tensor_op("Test message");
-        assert!(matches!(error, ZekeError::InvalidTensorOperation { .. }));
+        let error = OrysError::invalid_tensor_op("Test message");
+        assert!(matches!(error, OrysError::InvalidTensorOperation { .. }));
 
-        let error = ZekeError::operator_validation("MatMul", "Invalid dimensions");
-        assert!(matches!(error, ZekeError::OperatorValidation { .. }));
+        let error = OrysError::operator_validation("MatMul", "Invalid dimensions");
+        assert!(matches!(error, OrysError::OperatorValidation { .. }));
     }
 }

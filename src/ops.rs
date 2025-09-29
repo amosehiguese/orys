@@ -1,4 +1,4 @@
-//! Core operator implementations for the Zeke inference runtime
+//! Core operator implementations for the orys inference runtime
 //!
 //! This module provides implementations of some ONNX operators:
 //! - MatMul: Matrix multiplication
@@ -6,7 +6,7 @@
 //! - ReLU: Rectified Linear Unit activation
 //! - Sigmoid: Sigmoid activation function
 //! 
-use crate::errors::{Result, ZekeError};
+use crate::errors::{Result, OrysError};
 use crate::tensor::Tensor;
 use serde::{Deserialize, Serialize};
 use ndarray::ArrayView2;
@@ -47,8 +47,8 @@ pub trait Operator: std::fmt::Debug + Send + Sync {
 ///
 /// # Examples
 /// ```rust
-/// # use zeke::ops::{Operator, MatMul};
-/// # use zeke::tensor::Tensor;
+/// # use orys::ops::{Operator, MatMul};
+/// # use orys::tensor::Tensor;
 /// let matmul = MatMul;
 /// let a = Tensor::new(vec![2, 3], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])?;
 /// let b = Tensor::new(vec![3, 2], vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])?;
@@ -71,17 +71,17 @@ impl Operator for MatMul {
 
         // Double-check dimensions (should be caught in validate_inputs)
         if k != k2 {
-            return Err(ZekeError::operator_validation(
+            return Err(OrysError::operator_validation(
                 "MatMul", 
                 format!("Inner dimensions don't match: {} vs {}", k, k2),
             ));
         }
 
         let a_mat = ArrayView2::from_shape((m, k), a.data())
-            .map_err(|_| ZekeError::invalid_tensor_op("Invalid A shape".to_string()))?;
+            .map_err(|_| OrysError::invalid_tensor_op("Invalid A shape".to_string()))?;
 
         let b_mat = ArrayView2::from_shape((k, n), b.data())
-            .map_err(|_| ZekeError::invalid_tensor_op("Invalid B shape".to_string()))?;
+            .map_err(|_| OrysError::invalid_tensor_op("Invalid B shape".to_string()))?;
 
         let result = a_mat.dot(&b_mat);
         let result = result.into_raw_vec_and_offset().0;
@@ -94,7 +94,7 @@ impl Operator for MatMul {
 
     fn validate_inputs(&self, inputs: &[Tensor]) -> Result<()> {
         if inputs.len() != self.expected_input_count() {
-            return Err(ZekeError::InvalidInputCount {
+            return Err(OrysError::InvalidInputCount {
                 op_type: self.op_type().to_string(),
                 expected: self.expected_input_count(),
                 actual: inputs.len(),
@@ -106,13 +106,13 @@ impl Operator for MatMul {
 
         // Check that both tensors are 2D
         if a.ndim() != 2 {
-            return Err(ZekeError::operator_validation(
+            return Err(OrysError::operator_validation(
                 "MatMul",
                 format!("First input must be 2D, got {}D tensor", a.ndim()),
             ));
         }
         if b.ndim() != 2 {
-            return Err(ZekeError::operator_validation(
+            return Err(OrysError::operator_validation(
                 "MatMul",
                 format!("Second input must be 2D, got {}D tensor", b.ndim()),
             ));
@@ -120,7 +120,7 @@ impl Operator for MatMul {
 
         // Check dimension compatibility
         if a.shape()[1] != b.shape()[0] {
-            return Err(ZekeError::operator_validation(
+            return Err(OrysError::operator_validation(
                 "MatMul",
                 format!(
                     "Incompatible dimensions for matrix multiplication: [{}×{}] × [{}×{}]",
@@ -153,8 +153,8 @@ impl Operator for MatMul {
 ///
 /// # Examples
 /// ```rust
-/// # use zeke::ops::{Operator, Add};
-/// # use zeke::tensor::Tensor;
+/// # use orys::ops::{Operator, Add};
+/// # use orys::tensor::Tensor;
 /// let add = Add;
 /// let a = Tensor::new(vec![2, 1], vec![1.0, 2.0])?;
 /// let b = Tensor::new(vec![1, 3], vec![10.0, 20.0, 30.0])?;
@@ -194,7 +194,7 @@ impl Operator for Add {
 
     fn validate_inputs(&self, inputs: &[Tensor]) -> Result<()> {
         if inputs.len() != self.expected_input_count() {
-            return Err(ZekeError::InvalidInputCount {
+            return Err(OrysError::InvalidInputCount {
                 op_type: self.op_type().to_string(),
                 expected: self.expected_input_count(),
                 actual: inputs.len(),
@@ -205,7 +205,7 @@ impl Operator for Add {
         let b = &inputs[1];
 
         if !a.is_broadcastable_with(b) {
-            return Err(ZekeError::operator_validation(
+            return Err(OrysError::operator_validation(
                 "Add",
                 format!(
                     "Tensors with shapes {:?} and {:?} are not broadcastable",
@@ -290,8 +290,8 @@ impl Add {
 ///
 /// # Examples
 /// ```rust
-/// # use zeke::ops::{Operator, ReLU};
-/// # use zeke::tensor::Tensor;
+/// # use orys::ops::{Operator, ReLU};
+/// # use orys::tensor::Tensor;
 /// let relu = ReLU;
 /// let input = Tensor::from_vec(vec![-1.0, 0.0, 1.0, 2.0]);
 /// let result = relu.execute(&[input])?;
@@ -317,7 +317,7 @@ impl Operator for ReLU {
 
     fn validate_inputs(&self, inputs: &[Tensor]) -> Result<()> {
         if inputs.len() != self.expected_input_count() {
-            return Err(ZekeError::InvalidInputCount {
+            return Err(OrysError::InvalidInputCount {
                 op_type: self.op_type().to_string(),
                 expected: self.expected_input_count(),
                 actual: inputs.len(),
@@ -341,8 +341,8 @@ impl Operator for ReLU {
 ///
 /// # Examples
 /// ```rust
-/// # use zeke::ops::{Operator, Sigmoid};
-/// # use zeke::tensor::Tensor;
+/// # use orys::ops::{Operator, Sigmoid};
+/// # use orys::tensor::Tensor;
 /// let sigmoid = Sigmoid;
 /// let input = Tensor::from_vec(vec![0.0, 1.0, -1.0]);
 /// let result = sigmoid.execute(&[input])?;
@@ -377,7 +377,7 @@ impl Operator for Sigmoid {
 
     fn validate_inputs(&self, inputs: &[Tensor]) -> Result<()> {
         if inputs.len() != self.expected_input_count() {
-            return Err(ZekeError::InvalidInputCount {
+            return Err(OrysError::InvalidInputCount {
                 op_type: self.op_type().to_string(),
                 expected: self.expected_input_count(),
                 actual: inputs.len(),
@@ -403,7 +403,7 @@ impl Operator for Sigmoid {
 ///
 /// # Examples
 /// ```rust
-/// # use zeke::ops::create_operator;
+/// # use orys::ops::create_operator;
 /// let matmul_op = create_operator("MatMul")?;
 /// assert_eq!(matmul_op.op_type(), "MatMul");
 /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -414,7 +414,7 @@ pub fn create_operator(op_type: &str) -> Result<Box<dyn Operator>> {
         "Add" => Ok(Box::new(Add)),
         "ReLU" => Ok(Box::new(ReLU)),
         "Sigmoid" => Ok(Box::new(Sigmoid)),
-        _ => Err(ZekeError::UnsupportedOperator {
+        _ => Err(OrysError::UnsupportedOperator {
             op_type: op_type.to_string(),
         }),
     }
